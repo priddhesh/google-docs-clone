@@ -109,7 +109,28 @@ function Home() {
           </div>
         </div>
       </nav>
-      {!searchState && <h4 style={{ marginTop: "5%" }}>Recent documents</h4>}
+      {!searchState && <div>
+      <h4 style={{ marginTop: "5%" }}>Start a new document</h4> 
+      <div
+              onClick={() => {
+                navigate(`/docs/`);
+              }}
+              class="card"
+              style={{ width: "18rem" }}
+            >
+              <img
+                src="https://th.bing.com/th/id/OIP.-lbP1SXgEB-YLX11I15mAQAAAA?rs=1&pid=ImgDetMain"
+                class="card-img-top"
+                alt="..."
+              />
+              <div class="card-body">
+                <p class="card-text">
+                  Blank document
+                </p>
+              </div>
+            </div>
+      </div>}
+      {!searchState && <h4>Recent documents</h4>}
       {searchState && <h4 style={{ marginTop: "5%" }}>Search results</h4>}
       {searchState && 
       searchedDocs.length === 0 ? (

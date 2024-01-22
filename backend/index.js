@@ -225,8 +225,12 @@ app.post("/doc",async(req,res)=>{
   try {
     let {docID} = req.body;
     let docInfo = await getDocInfo(docID);
+    if(docInfo[0][0]!=undefined){
     docInfo = docInfo[0][0];
     res.send(docInfo);
+    }else{
+      res.send({title:""});
+    }
   } catch (error) {
     console.log(error);
     return error;
