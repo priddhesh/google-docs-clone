@@ -44,6 +44,9 @@ const {
     getUserID,
     getOwnerID,
     getOwnerEmail,
+    updateRecentDoc,
+    getRecentDocs,
+    searchDoc,
 } = require("./database/db");
 const io = new Server(5000, {
     cors: {
@@ -120,6 +123,9 @@ app.post("/checkAuthorized", async(req,res)=>{
     try {
       const {doc_id,email } = req.body;
       let allowedMailIDs = await checkAuhtorized(doc_id,email);
+      if(allowedMailIDs[0][0]==undefined){
+        res.send({success:true,role:"0"});
+      }else{
       allowedMailIDs = allowedMailIDs[0][0].access_to;
       allowedMailIDs = JSON.parse(allowedMailIDs);
       
@@ -132,6 +138,7 @@ app.post("/checkAuthorized", async(req,res)=>{
         }
       }
       res.status(404).send({success: false});
+    }
     } catch (error) {
         console.log(error);
         return error;
@@ -140,14 +147,19 @@ app.post("/checkAuthorized", async(req,res)=>{
 
 app.post("/getUsersWithAccess",async(req,res)=>{
  try {
-    const {doc_id} = req.body;
-    let allowedMailIDs = await checkAuhtorized(doc_id);
+  const { doc_id } = req.body;
+  let allowedMailIDs = await checkAuhtorized(doc_id);
+  if (allowedMailIDs[0][0] !== undefined) {
     allowedMailIDs = allowedMailIDs[0][0].access_to;
     res.send(allowedMailIDs);
- } catch (error) {
-    console.log(error);
-    return error;
- }
+  } else {
+    let ownerEmail = req.cookies.email;
+    res.send([`${ownerEmail}-0`]);
+  }
+} catch (error) {
+  console.error("Error in handling request:", error);
+  res.status(500).send("Internal Server Error");
+}
 });
 
 app.post("/api/register", async (req, res) => {
@@ -232,12 +244,57 @@ app.get("/test",async(req,res)=>{
 
 app.get("/email",async(req,res)=>{
   try {
-    res.send({email: req.cookies.email});
+    let userID = await getUserID(req.cookies.email);
+    userID = userID[0][0].user_id;
+    res.send({email: req.cookies.email, userID: userID});
   } catch (error) {
     console.log(error);
     return error;
   }
 })
+
+app.post("/updateRecentDocs",async(req,res)=>{
+  try {
+    const {doc_id, email} = req.body;
+    const currentTime = new Date().toLocaleTimeString();
+    const currentDate = new Date().toLocaleDateString(undefined,{ month: 'short', day: 'numeric', year: 'numeric' });
+    let data = await updateRecentDoc(doc_id,email,currentTime,currentDate);
+    res.send({success:true});
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+});
+
+app.post("/recentDocs",async(req,res)=>{
+  try {
+    let {user_id} = req.body;
+    let docID = [];
+    let docDate = [];
+    let docTime = [];
+    let docTitle = [];
+    let data = await getRecentDocs(user_id);
+    data = data[0][0].recently_accessed;
+    data = JSON.parse(data);
+    async function processData(data) {
+    await Promise.all(data.map(async (item)=>{
+      let doc_id = item.split(" ")[0];
+      let docInfo = await getDocInfo(doc_id);
+      let date = `${item.split(" ")[1]} ${item.split(" ")[2]} ${item.split(" ")[3]}`;
+      let time = `${item.split(" ")[4]} ${item.split(" ")[5]}`
+      docID.push(doc_id);
+      docDate.push(date);
+      docTime.push(time);
+      docTitle.push(docInfo[0][0].title);
+    }));
+    }
+    await processData(data);
+    res.send({id: docID,date: docDate,time: docTime,title: docTitle});
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+});
 
 app.get("/api/logout", async (req, res) => {
   res.clearCookie("email");
@@ -246,14 +303,33 @@ app.get("/api/logout", async (req, res) => {
 
 app.post("/docOwnerID", async(req,res)=>{
   try {
-    const {doc_id} = req.body;
-    let ownerID = await getOwnerID(doc_id);
-    ownerID = ownerID[0][0].user_id;
-    res.send(ownerID);
+    const { doc_id } = req.body;
+  
+    let ownerID;
+  
+    if (doc_id) {
+      ownerID = await getOwnerID(doc_id, undefined);
+  
+      if (ownerID[0][0] !== undefined) {
+        ownerID = ownerID[0][0].user_id;
+        return res.send(ownerID);
+      }
+    }
+  
+    let email = req.cookies.email;
+    ownerID = await getOwnerID(undefined, email);
+  
+    if (ownerID[0][0] !== undefined) {
+      ownerID = ownerID[0][0].user_id;
+      return res.send(ownerID);
+    }
+
+    res.status(404).send('Owner ID not found');
   } catch (error) {
-    console.log(error);
-    return error;
+    console.error(error);
+    res.status(500).send('Internal Server Error');
   }
+  
 });
 
 app.post("/docOwnerEmail", async(req,res)=>{
@@ -267,6 +343,24 @@ app.post("/docOwnerEmail", async(req,res)=>{
     return error;
   }
 });
+
+app.post("/searchDocs",async(req,res)=>{
+  try {
+    let searchedDocs = [];
+    const {user_id,search} = req.body;
+    const data = await searchDoc(user_id,search);
+    for(let i = 0;i<data.length;i++){
+      let doc_id = data[i][1];
+      let docInfo = await getDocInfo(doc_id);
+      docInfo = docInfo[0][0];
+      searchedDocs.push(docInfo);
+    }
+    res.send(searchedDocs);
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+})
 
 app.listen(5001,()=>{
     console.log("running on 5001...");

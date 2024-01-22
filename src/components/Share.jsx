@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect} from "react";
+import { useState, useEffect,useContext} from "react";
 import { useParams } from "react-router-dom";
 
 function Share() {
@@ -66,7 +66,6 @@ function Share() {
         setLoading(false);
       }
     };
-
     getUsersWithAccess();
   }, [role]);
 

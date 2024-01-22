@@ -42,3 +42,24 @@
 .role-text {
   margin-left: 10px; /* Adjust the margin as needed */
 }
+
+
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start; /* Align cards to the left */
+}
+
+.card {
+  width: calc(25% - 10px); /* 25% width for each card with some spacing */
+  margin: 0px 10px 10px 0px; /* Adjust as needed */
+  border: 1px solid #ccc; /* Optional: Add a border for visual separation */
+  box-sizing: border-box;
+  padding: 10px; /* Optional: Add padding for card content */
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}

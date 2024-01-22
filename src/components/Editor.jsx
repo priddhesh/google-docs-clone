@@ -103,6 +103,14 @@ const Editor = () => {
           res = await res.json();
           if (res.success == true) {
             setRole(res.role);
+            await fetch(`http://localhost:5001/updateRecentDocs`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ doc_id: id, email: email }),
+            credentials: "include",
+          });
           } else {
             return navigate("/requestaccess");
           }

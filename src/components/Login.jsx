@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const signin = async () => {
@@ -16,7 +18,11 @@ function Login() {
       credentials: "include",
     });
     res = await res.json();
-    console.log(res); 
+    if(res.success===false){
+      alert("Incorrect email or password");
+    }else{
+      navigate("/home");
+    }
   };
 
   const logout = async()=>{
