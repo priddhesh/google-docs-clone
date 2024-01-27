@@ -1,4 +1,5 @@
 require("dotenv").config();
+const e = require("express");
 const mysql = require("mysql2");
 
 const pool = mysql
@@ -37,15 +38,20 @@ const updateDocument = async (id, data) => {
   }
 };
 
-const addNewID = async (id, uid, email) => {
+const addNewID = async (id, uid, email, data, title) => {
   try {
     let access_to = `["${email}-0"]`;
+
     let res = await pool.query(`SELECT doc_id FROM docs WHERE doc_id=?`, [id]);
     if (res[0].length === 0) {
       await pool.query(
-        `INSERT INTO docs(user_id,doc_id,data,access_to) VALUES(?,?,"",?)`,
-        [uid, id, access_to]
+        `INSERT INTO docs(user_id,doc_id,title,data,access_to) VALUES(?,?,?,?,?)`,
+        [uid, id, title, data, access_to]
       );
+      await pool.query(`INSERT INTO versions(doc_id,version) VALUES(?,?)`, [
+        id,
+        "[]",
+      ]);
     }
     return;
   } catch (error) {
@@ -152,9 +158,10 @@ const checkDuplicateUserId = async (id) => {
 
 const register = async (user_id, email, password) => {
   try {
+    let recentlyAccessed = "[]";
     let data = pool.query(
-      `INSERT INTO users(user_id,email,password) VALUES(?,?,?)`,
-      [user_id, email, password]
+      `INSERT INTO users(user_id,email,password,recently_accessed) VALUES(?,?,?,?)`,
+      [user_id, email, password, recentlyAccessed]
     );
 
     return data;
@@ -286,7 +293,6 @@ const getRecentDocs = async (user_id) => {
       `SELECT recently_accessed FROM users WHERE user_id = ?`,
       [user_id]
     );
-
     return data;
   } catch (error) {
     console.log(error);
@@ -353,6 +359,107 @@ const searchDoc = async (user_id, search) => {
     return error;
   }
 };
+
+const getTemplates = async () => {
+  try {
+    let templates = await pool.query(`SELECT * FROM templates`);
+
+    return templates;
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+
+const getTemplateData = async (templateID) => {
+  try {
+    templateID = `template${templateID}`;
+    let data = await pool.query(`SELECT data FROM templates WHERE doc_id=?`, [
+      templateID,
+    ]);
+
+    return data;
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+let ans = [];
+const updateVersion = async (docID, data) => {
+  try {
+    let id = await pool.query(`SELECT doc_id FROM versions WHERE doc_id=?`, [
+      docID,
+    ]);
+    id = id[0][0];
+    const currentDate = new Date();
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const day = currentDate.getDate();
+    const hours = currentDate.getHours();
+    const minutes = currentDate.getMinutes();
+    const seconds = currentDate.getSeconds();
+
+    const dateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    let res = await pool.query(`SELECT version FROM versions WHERE doc_id=?`, [
+      docID,
+    ]);
+    let versions = res[0];
+    if (versions.length == 0) {
+      versions = [];
+      versions.push({
+        data: `${data}`,
+        time: `${dateTime}`,
+      });
+    } else {
+      versions = versions[0].version;
+      versions = Buffer.from(versions, "hex");
+      versions = versions.toString("utf-8");
+      versions = JSON.parse(versions);
+      let prevVersionTimeDate = versions[0].time;
+      prevVersionTimeDate = new Date(prevVersionTimeDate);
+      let currentVersionTimeDate = new Date();
+
+      let timeDifference = currentVersionTimeDate - prevVersionTimeDate;
+
+      let differenceInMinutes = timeDifference / (1000 * 60);
+      if (differenceInMinutes > 30) {
+        versions.unshift({
+          data: `${data}`,
+          time: `${dateTime}`,
+        });
+        if (versions.length > 10) {
+          versions.pop();
+        }
+      } else {
+        versions[0] = {
+          data: `${data}`,
+          time: `${dateTime}`,
+        };
+      }
+    }
+    versions = JSON.stringify(versions);
+    if (id === undefined) {
+      await pool.query(`INSERT INTO versions VALUES(?,?)`, [docID, versions]);
+    } else {
+      await pool.query(`UPDATE versions SET version = ? WHERE doc_id = ?`, [
+        versions,
+        docID,
+      ]);
+    }
+    return res;
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+
+const getVersions = async (id)=>{
+   let data = await pool.query(`SELECT version FROM versions WHERE doc_id = ?`,[id]);
+
+   return data;
+}
 module.exports = {
   getDocument,
   updateDocument,
@@ -372,4 +479,8 @@ module.exports = {
   updateRecentDoc,
   getRecentDocs,
   searchDoc,
+  getTemplates,
+  getTemplateData,
+  updateVersion,
+  getVersions,
 };

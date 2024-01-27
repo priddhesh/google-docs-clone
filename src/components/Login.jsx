@@ -6,28 +6,28 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const signin = async () => {
-    let res =  await fetch(`http://localhost:5001/api/signin`, {
+    let res = await fetch(`http://localhost:5001/api/signin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email: email,
-        password:password,
+        password: password,
       }),
       credentials: "include",
     });
     res = await res.json();
-    if(res.success===false){
+    if (res.success === false) {
       alert("Incorrect email or password");
-    }else{
+    } else {
       navigate("/home");
     }
   };
 
-  const logout = async()=>{
-    await fetch(`http://localhost:5001/test`,{
-      credentials:"include",
+  const logout = async () => {
+    await fetch(`http://localhost:5001/test`, {
+      credentials: "include",
     });
   };
 
@@ -74,6 +74,22 @@ function Login() {
           Submit
         </button>
       </form>
+      <h6 className="text-center mb-4">Or sign in with your social network</h6>
+      <div
+        style={{ marginLeft: "30%" }}
+        className="row row-cols-1 row-cols-sm-2"
+      >
+        <div className="col mb-3">
+          <a
+            href={`http://localhost:5001/auth/google`}
+            className="btn btn-icon btn-danger btn-google btn-lg w-100 text-light"
+          >
+            <i className="bx bxl-google fs-xl me-2"></i>
+            Google
+          </a>
+        </div>
+      </div>
+
       <button onClick={logout}>Logout</button>
     </>
   );

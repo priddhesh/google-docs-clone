@@ -1,8 +1,11 @@
 import React from "react";
 import { useState, useEffect,useContext} from "react";
+import DocContext from "../context/DocContext";
 import { useParams } from "react-router-dom";
 
 function Share() {
+  const docContext = useContext(DocContext);
+
   const [emailSDoc, setEmailSDoc] = useState("");
   const [stage, setStage] = useState(0);
   const [role, setRole] = useState("Editor");
@@ -12,8 +15,8 @@ function Share() {
   const [loading, setLoading] = useState(false);
   const [trigger,setTrigger] = useState(true);
   const [docTitle,setDocTitle] = useState("");
+  const [version, setVersion] = useState(false);
   const { id } = useParams();
-
   const validateMail = (maildID) => {
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     const validity = gmailRegex.test(maildID);
@@ -80,7 +83,11 @@ function Share() {
         credentials: "include",
       })
       data = await data.json();
+      if(docContext.templateTitle!=""){
+        setDocTitle(docContext.templateTitle);
+      }else{
       setDocTitle(data.title);
+      }
     }
     )();
   }, [])
@@ -147,6 +154,9 @@ function Share() {
       >
         Share
       </button>
+      <img onClick={()=>{
+        docContext.setVersion(true);
+      }} style={{height:"20px",margin:"auto"}} src="/assets/history.png"/>
       </div>
      }
 
@@ -275,7 +285,7 @@ function Share() {
                         }}
                       >
                         {
-                          <a className="dropdown-item" href="#">
+                          <a className="dropdown-item">
                             Viewer {role === "Viewer" ? "✔" : ""}
                           </a>
                         }
@@ -286,7 +296,7 @@ function Share() {
                         }}
                       >
                         {
-                          <a className="dropdown-item" href="#">
+                          <a className="dropdown-item">
                             Editor {role === "Editor" ? "✔" : ""}
                           </a>
                         }

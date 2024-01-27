@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import DocContext from "../context/DocContext";
+import { v4 as uuidv4 } from 'uuid';
 
 function Home() {
   const [userID, setUserID] = useState("");
@@ -10,7 +12,10 @@ function Home() {
   const [search,setSearch] = useState("");
   const [searchedDocs,setSearchDocs] = useState([]);
   const [searchState,setSearchState] = useState(false);
+  const [templates,setTemplates] = useState([]);
   const navigate = useNavigate();
+  const uniqueId = uuidv4();
+  const docContext = useContext(DocContext);
 
   const checkAuthorized = async () => {
     let data = await fetch(`http://localhost:5001/api/authorize`, {
@@ -55,6 +60,14 @@ function Home() {
           setDate(recentDocsData.date);
           setDocID(recentDocsData.id);
           setTime(recentDocsData.time);
+
+          let templates = await fetch(`http://localhost:5001/templates`,{
+            credentials: "include",
+          });
+
+          templates = await templates.json();
+          console.log(templates);
+          setTemplates(templates);
         })();
       } else {
         navigate("/");
@@ -88,7 +101,6 @@ function Home() {
       setSearchState(true);
     }
   }
-
   return (
     <>
       <nav class="navbar navbar-expand-lg bg-body-tertiary fixed-top">
@@ -111,6 +123,7 @@ function Home() {
       </nav>
       {!searchState && <div>
       <h4 style={{ marginTop: "5%" }}>Start a new document</h4> 
+      <div style={{display:"flex"}}>
       <div
               onClick={() => {
                 navigate(`/docs/`);
@@ -129,19 +142,58 @@ function Home() {
                 </p>
               </div>
             </div>
+            {
+              templates.map((template, index) => (
+                <div
+                  key={index} 
+                  onClick={() => {
+                    docContext.setTemplateID(index+1);
+                    docContext.setTemplateTitle(template.name);
+                    navigate(`/docs/${uniqueId}`);
+                  }}
+                  className="card" 
+                  style={{ width: "18rem" }}
+                >
+                  <img
+                    src={`/assets/templates/${template.name}.png`}
+                    className="card-img-top"
+                    alt="..."
+                  />
+                  <div className="card-body">
+                    <p className="card-text">
+                      {template.name}
+                    </p>
+                  </div>
+                </div>
+              ))              
+            }
+      </div>
       </div>}
       {!searchState && <h4>Recent documents</h4>}
-      {searchState && <h4 style={{ marginTop: "5%" }}>Search results</h4>}
-      {searchState && 
-      searchedDocs.length === 0 ? (
-        <p>No results found!</p>
-      ) : (
-        searchedDocs.map((doc) => (
-          <h6 onClick={()=>{
-            navigate(`/docs/${doc.doc_id}`);
-          }}>{doc.title}</h6>
-        ))
-      )
+      {searchState && <h4 style={{ marginTop: "5%" }}>Top results</h4>}
+      {searchState &&
+        <div className="card-container d-flex">
+          {searchedDocs.map((item, idx) => (
+            <div
+              onClick={() => {
+                navigate(`/docs/${item.doc_id}`);
+              }}
+              class="card"
+              style={{ width: "18rem" }}
+            >
+              <img
+                src="https://th.bing.com/th/id/OIP.-lbP1SXgEB-YLX11I15mAQAAAA?rs=1&pid=ImgDetMain"
+                class="card-img-top"
+                alt="..."
+              />
+              <div class="card-body">
+                <p class="card-text">
+                  {item === null ? "Untitled document" : item.title}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       }
       {/* {
         (() => {

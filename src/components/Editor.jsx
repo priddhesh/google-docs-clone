@@ -1,7 +1,8 @@
-import { useEffect, useState,useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import DocContext from "../context/DocContext";
 import { useNavigate } from "react-router-dom";
 import Share from "./Share";
+import Version from "./Version";
 
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
@@ -23,50 +24,47 @@ const toolbarOptions = [
   [{ header: 1 }, { header: 2 }], // custom button values
   [{ list: "ordered" }, { list: "bullet" }],
   [{ script: "sub" }, { script: "super" }], // superscript/subscript
-  [{ indent: "-1" }, { indent: "+1" }], // outdent/indent
+  [{ indent: "-1" }, { indent: "+1" }],
   [{ direction: "rtl" }], // text direction
 
-  [{ size: ["small", false, "large", "huge"] }], // custom dropdown
+  [{ size: ["small", false, "large", "huge"] }],
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
 
-  [{ color: [] }, { background: [] }], // dropdown with defaults from theme
+  [{ color: [] }, { background: [] }],
   [{ font: [] }],
   [{ align: [] }],
 
-  ["clean"], // remove formatting button
+  ["clean"],
 ];
 
 const Editor = () => {
   const [socket, setSocket] = useState();
   const [quill, setQuill] = useState();
-  const [role, setRole] = useState();
-  const [email,setEmail] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
   const { id } = useParams();
   const navigate = useNavigate();
   const docContext = useContext(DocContext);
   docContext.setDocID(id);
 
-  const ownerID  = async()=>{
-    let data = await fetch(`http://localhost:5001/docOwnerID`,{
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({ doc_id: id }),
-     credentials: "include",
-    })
+  const ownerID = async () => {
+    let data = await fetch(`http://localhost:5001/docOwnerID`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ doc_id: id }),
+      credentials: "include",
+    });
 
     data = await data.json();
     docContext.setDocOwner(data);
- };
+  };
 
   const checkAuthorized = async () => {
-    let data = await fetch(
-      `http://localhost:5001/api/authorize`,
-      {
-        credentials: "include",
-      }
-    );
+    let data = await fetch(`http://localhost:5001/api/authorize`, {
+      credentials: "include",
+    });
     return data;
   };
 
@@ -84,7 +82,7 @@ const Editor = () => {
     const fetchData = async () => {
       let status = await isLoggedIn();
       if (status === true) {
-        let data = await fetch(`http://localhost:5001/email`,{
+        let data = await fetch(`http://localhost:5001/email`, {
           credentials: "include",
         });
         data = await data.json();
@@ -103,35 +101,32 @@ const Editor = () => {
           res = await res.json();
           if (res.success == true) {
             setRole(res.role);
+            sessionStorage.setItem("role", res.role);
             await fetch(`http://localhost:5001/updateRecentDocs`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ doc_id: id, email: email }),
-            credentials: "include",
-          });
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ doc_id: id, email: email }),
+              credentials: "include",
+            });
           } else {
             return navigate("/requestaccess");
           }
         };
-
-        isAllowed(id, email);
+        await isAllowed(id, email);
       } else {
         return navigate("/");
       }
     };
-    fetchData();
     const quillServer = new Quill("#container", {
       theme: "snow",
-      readOnly: true,
+      readOnly: false,
       modules: { toolbar: toolbarOptions },
     });
-    // quillServer.disable();
-    // quillServer.setText('Loading the document...');
     setQuill(quillServer);
+    fetchData();
   }, []);
-
   useEffect(() => {
     const socketServer = io("http://localhost:5000");
     setSocket(socketServer);
@@ -183,17 +178,46 @@ const Editor = () => {
   useEffect(() => {
     if (quill === null || socket === null) return;
     socket &&
-      socket.once("load-document", (document) => {
+      socket.once("load-document", async (document) => {
         quill && quill.setContents(document);
-        quill && quill.enable();
+        let data = await fetch(`http://localhost:5001/role`, {
+          credentials: "include",
+        });
+
+        data = await data.json();
+        if(data.role ==="1"){
+          quill && quill.enable(false);
+        }else{
+          quill && quill.enable();
+        }
       });
 
-    async function triggerSocket(email){
-      socket && await socket.emit("get-document", id,email);
+    async function triggerSocket(email) {
+      //focus
+      // let templateData = await fetch(`http://localhost:5001/templateData`,{
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({ template: templateID }),
+      //   credentials: "include",
+      // });
+      // templateData = await templateData.json();
+      // console.log(templateData);
+      let templateID = docContext.templateID;
+      let templateTitle = docContext.templateTitle;
+      socket &&
+        (await socket.emit(
+          "get-document",
+          id,
+          email,
+          templateID,
+          templateTitle
+        ));
       ownerID();
     }
-    (async(triggerSocket)=>{
-      let data = await fetch(`http://localhost:5001/email`,{
+    (async (triggerSocket) => {
+      let data = await fetch(`http://localhost:5001/email`, {
         credentials: "include",
       });
       data = await data.json();
@@ -210,9 +234,12 @@ const Editor = () => {
       quill == undefined
     )
       return;
-    const interval = setInterval(() => {
-      socket.emit("save-document", quill.getContents());
-    }, 2000);
+    let interval;
+    if (role !== "1") {
+      interval = setInterval(() => {
+        socket.emit("save-document", quill.getContents());
+      }, 2000);
+    }
 
     return () => {
       clearInterval(interval);
@@ -222,9 +249,13 @@ const Editor = () => {
   return (
     <>
       <Share />
-      <Component>
+      {!docContext.version && <Component>
         <Box className="container" id="container"></Box>
       </Component>
+      }
+      {
+        docContext.version && <Version/>
+      }
     </>
   );
 };
