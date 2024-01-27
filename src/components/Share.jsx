@@ -15,7 +15,6 @@ function Share() {
   const [loading, setLoading] = useState(false);
   const [trigger,setTrigger] = useState(true);
   const [docTitle,setDocTitle] = useState("");
-  const [version, setVersion] = useState(false);
   const { id } = useParams();
   const validateMail = (maildID) => {
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;

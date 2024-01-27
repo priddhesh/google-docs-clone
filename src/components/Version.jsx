@@ -1,25 +1,20 @@
-import React, { useEffect,useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
-
+import DocContext from "../context/DocContext";
 
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 
-import { Box } from "@mui/material";
-import styled from "@emotion/styled";
-
-
-const Component = styled.div`
-  background: #f5f5f5;
-`;
 
 function Version() {
   const { id } = useParams();
-  const [versions,setVersions] = useState([]);
-  const [quillView,setQuillViewer] = useState();
+  const [versions, setVersions] = useState([]);
+  const [quillView, setQuillViewer] = useState();
+  const [timeDate, setTimeDate] = useState("");
+  const docContext = useContext(DocContext);
 
   useEffect(() => {
-      (async () => {
+    (async () => {
       let versions = await fetch(`http://localhost:5001/versions`, {
         method: "POST",
         headers: {
@@ -29,31 +24,55 @@ function Version() {
         credentials: "include",
       });
       versions = await versions.json();
-      versions = versions[0].data;
-      versions = JSON.parse(versions);
       setVersions(versions);
     })();
-    const quillServer = new Quill("#container", {
-        theme: "snow",
-        readOnly: false,
+    const quillServer = new Quill("#containerVersion", {
+      theme: "snow",
+      readOnly: true,
+      "modules":{
+        "toolbar": false
+      }
     });
     setQuillViewer(quillServer);
   }, []);
-  
+
   useEffect(() => {
-    if(versions.length>0){
-     quillView && quillView.setContents(versions);
-     quillView.enable(false);
+    if (versions.length > 0) {
+      let firstVersion = versions[0].data;
+      setTimeDate(versions[0].time);
+      firstVersion = JSON.parse(firstVersion);
+      quillView && quillView.setContents(firstVersion);
+      quillView.enable(false);
     }
-  }, [quillView,versions])
-  
+  }, [quillView, versions]);
 
   return (
-  <>
-     <Component>
-        <Box className="container" id="container"></Box>
-      </Component>
-  </>
+    <>
+      <nav class="navbar navbar-expand-lg ">
+        <div style={{ display: "flex" }}>
+          <img
+            onClick={() => {
+              docContext.setVersion(false);
+            }}
+            style={{ height: "30px" }}
+            src="/assets/back.png"
+          />
+          <h4 style={{ marginLeft: "10px" }}>
+            {new Date(timeDate).toLocaleString("en-US", {
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            })}
+          </h4>
+        </div>
+      </nav>
+      <div style={{display:"flex"}}>
+        <div className="container" id="containerVersion"></div>
+        <div style={{padding:"15%"}}></div>
+      </div>
+    </>
   );
 }
 

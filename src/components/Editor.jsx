@@ -79,6 +79,7 @@ const Editor = () => {
   };
 
   useEffect(() => {
+    if(docContext.version) return;
     const fetchData = async () => {
       let status = await isLoggedIn();
       if (status === true) {
@@ -126,7 +127,7 @@ const Editor = () => {
     });
     setQuill(quillServer);
     fetchData();
-  }, []);
+  }, [docContext.version]);
   useEffect(() => {
     const socketServer = io("http://localhost:5000");
     setSocket(socketServer);
@@ -141,7 +142,7 @@ const Editor = () => {
       socket === null ||
       quill === null ||
       socket == undefined ||
-      quill == undefined
+      quill == undefined || docContext.version
     )
       return;
     const handleChange = (delta, oldData, source) => {
@@ -153,7 +154,7 @@ const Editor = () => {
     return () => {
       quill && quill.off("text-change", handleChange);
     };
-  }, [quill, socket]);
+  }, [quill, socket,docContext.version]);
 
   useEffect(() => {
     if (
@@ -231,7 +232,7 @@ const Editor = () => {
       socket === null ||
       quill === null ||
       socket == undefined ||
-      quill == undefined
+      quill == undefined || docContext.version
     )
       return;
     let interval;
@@ -244,11 +245,11 @@ const Editor = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [socket, quill]);
+  }, [socket, quill, docContext.version]);
 
   return (
     <>
-      <Share />
+      {!docContext.version && <Share />}
       {!docContext.version && <Component>
         <Box className="container" id="container"></Box>
       </Component>
