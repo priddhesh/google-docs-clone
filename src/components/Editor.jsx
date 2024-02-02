@@ -79,7 +79,7 @@ const Editor = () => {
   };
 
   useEffect(() => {
-    if(docContext.version) return;
+    if (docContext.version) return;
     const fetchData = async () => {
       let status = await isLoggedIn();
       if (status === true) {
@@ -142,7 +142,8 @@ const Editor = () => {
       socket === null ||
       quill === null ||
       socket == undefined ||
-      quill == undefined || docContext.version
+      quill == undefined ||
+      docContext.version
     )
       return;
     const handleChange = (delta, oldData, source) => {
@@ -154,7 +155,7 @@ const Editor = () => {
     return () => {
       quill && quill.off("text-change", handleChange);
     };
-  }, [quill, socket,docContext.version]);
+  }, [quill, socket, docContext.version]);
 
   useEffect(() => {
     if (
@@ -178,6 +179,11 @@ const Editor = () => {
 
   useEffect(() => {
     if (quill === null || socket === null) return;
+    // let prevVersion = sessionStorage.getItem("prevVersion");
+    // if(prevVersion!=null){
+    //   prevVersion = JSON.parse(prevVersion);
+    //   quill && quill.setContents(prevVersion);
+    // }else{
     socket &&
       socket.once("load-document", async (document) => {
         quill && quill.setContents(document);
@@ -186,25 +192,15 @@ const Editor = () => {
         });
 
         data = await data.json();
-        if(data.role ==="1"){
+        if (data.role === "1") {
           quill && quill.enable(false);
-        }else{
+        } else {
           quill && quill.enable();
         }
       });
+    // }
 
     async function triggerSocket(email) {
-      //focus
-      // let templateData = await fetch(`http://localhost:5001/templateData`,{
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify({ template: templateID }),
-      //   credentials: "include",
-      // });
-      // templateData = await templateData.json();
-      // console.log(templateData);
       let templateID = docContext.templateID;
       let templateTitle = docContext.templateTitle;
       socket &&
@@ -225,14 +221,15 @@ const Editor = () => {
       let email = data.email;
       triggerSocket(email);
     })(triggerSocket);
-  }, [quill, socket, id]);
+  }, [quill, socket,id]);
 
   useEffect(() => {
     if (
       socket === null ||
       quill === null ||
       socket == undefined ||
-      quill == undefined || docContext.version
+      quill == undefined ||
+      docContext.version
     )
       return;
     let interval;
@@ -250,13 +247,12 @@ const Editor = () => {
   return (
     <>
       {!docContext.version && <Share />}
-      {!docContext.version && <Component>
-        <Box className="container" id="container"></Box>
-      </Component>
-      }
-      {
-        docContext.version && <Version/>
-      }
+      {!docContext.version && (
+        <Component>
+          <Box className="container" id="container"></Box>
+        </Component>
+      )}
+      {docContext.version && <Version />}
     </>
   );
 };

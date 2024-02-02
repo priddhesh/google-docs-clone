@@ -425,11 +425,12 @@ const updateVersion = async (docID, data) => {
 
       let differenceInMinutes = timeDifference / (1000 * 60);
       if (differenceInMinutes > 30) {
-        versions.unshift({
-          data: `${data}`,
-          time: `${dateTime}`,
-        });
-        if (versions.length > 10) {
+        if(versions[0].data==data){
+
+        }else{
+        versions[0].time = `${dateTime}`;
+        }
+        if (versions.length > 10 ) {
           versions.pop();
         }
       } else {

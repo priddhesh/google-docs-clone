@@ -7,6 +7,7 @@ const DocState = (props)=>{
    const [templateID,setTemplateID] = useState("");
    const [templateTitle,setTemplateTitle] = useState("");
    const [version,setVersion] = useState(false);
+
    return(
     <DocContext.Provider value={{docOwner, docID,setDocOwner,setDocID,templateID,setTemplateID,templateTitle,setTemplateTitle,version,setVersion}}>
         {props.children}
