@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Router, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import DocContext from "../context/DocContext";
 
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 
-function Version() {
+function Version({onStateChange}) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [versions, setVersions] = useState([]);
   const [versionID,setVersionID] = useState(0);
   const [quillView, setQuillViewer] = useState();
   const [timeDate, setTimeDate] = useState("");
+  const [localState, setLocalState] = useState([]);
   const docContext = useContext(DocContext);
 
   const handleVersionClick = async (e) => {
@@ -21,8 +23,9 @@ function Version() {
   
   const restore = async(e)=>{
     let id = JSON.parse(versionID);
-    // sessionStorage.setItem("prevVersion",versions[id].data);
-    window.location.reload();
+    setLocalState(versions[id].data);
+    onStateChange(versions[id].data);
+    docContext.version = false;
   }
   useEffect(() => {
     (async () => {

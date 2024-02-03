@@ -42,10 +42,15 @@ const Editor = () => {
   const [quill, setQuill] = useState();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
+  const [childState, setChildState] = useState([]);
   const { id } = useParams();
   const navigate = useNavigate();
   const docContext = useContext(DocContext);
   docContext.setDocID(id);
+
+  const handleChildStateChange = (newState) => {
+    setChildState(newState);
+  };
 
   const ownerID = async () => {
     let data = await fetch(`http://localhost:5001/docOwnerID`, {
@@ -142,8 +147,7 @@ const Editor = () => {
       socket === null ||
       quill === null ||
       socket == undefined ||
-      quill == undefined ||
-      docContext.version
+      quill == undefined 
     )
       return;
     const handleChange = (delta, oldData, source) => {
@@ -155,7 +159,7 @@ const Editor = () => {
     return () => {
       quill && quill.off("text-change", handleChange);
     };
-  }, [quill, socket, docContext.version]);
+  }, [quill, socket]);
 
   useEffect(() => {
     if (
@@ -179,14 +183,18 @@ const Editor = () => {
 
   useEffect(() => {
     if (quill === null || socket === null) return;
-    // let prevVersion = sessionStorage.getItem("prevVersion");
-    // if(prevVersion!=null){
-    //   prevVersion = JSON.parse(prevVersion);
-    //   quill && quill.setContents(prevVersion);
-    // }else{
     socket &&
       socket.once("load-document", async (document) => {
+        if(childState.length!=0){
+          document = JSON.parse(childState);
+        }
         quill && quill.setContents(document);
+        socket.emit("save-document", quill.getContents());
+        if(childState.length!=0){
+         setTimeout(() => {
+          window.location.reload();
+         }, 1000);
+        }
         let data = await fetch(`http://localhost:5001/role`, {
           credentials: "include",
         });
@@ -198,7 +206,6 @@ const Editor = () => {
           quill && quill.enable();
         }
       });
-    // }
 
     async function triggerSocket(email) {
       let templateID = docContext.templateID;
@@ -236,7 +243,7 @@ const Editor = () => {
     if (role !== "1") {
       interval = setInterval(() => {
         socket.emit("save-document", quill.getContents());
-      }, 2000);
+      }, 500);
     }
 
     return () => {
@@ -252,7 +259,7 @@ const Editor = () => {
           <Box className="container" id="container"></Box>
         </Component>
       )}
-      {docContext.version && <Version />}
+      {docContext.version && <Version onStateChange = {handleChildStateChange}/>}
     </>
   );
 };
