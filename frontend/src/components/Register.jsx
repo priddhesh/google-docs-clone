@@ -5,7 +5,7 @@ function Register() {
   const [password, setPassword] = useState("");
 
   const register = async () => {
-    let res = await fetch(`http://localhost:5001/api/register`, {
+    let res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

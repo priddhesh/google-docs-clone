@@ -29,7 +29,7 @@ function Version({onStateChange}) {
   }
   useEffect(() => {
     (async () => {
-      let versions = await fetch(`http://localhost:5001/versions`, {
+      let versions = await fetch(`${process.env.REACT_APP_BACKEND_URL}/versions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

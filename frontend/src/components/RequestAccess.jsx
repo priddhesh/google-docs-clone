@@ -11,7 +11,7 @@ function RequestAccess() {
 
   useEffect(() => {
     (async () => {
-      let data = await fetch(`http://localhost:5001/email`, {
+      let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/email`, {
         credentials: "include",
       });
       data = await data.json();
@@ -25,7 +25,7 @@ function RequestAccess() {
     let docID = docContext.docID;
     let docOwnerID = docContext.docOwner;
     if(docOwnerID!="" && docOwnerID!=undefined){
-    let docOwnerEmail = await fetch(`http://localhost:5001/docOwnerEmail`, {
+    let docOwnerEmail = await fetch(`${process.env.REACT_APP_BACKEND_URL}/docOwnerEmail`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -38,7 +38,7 @@ function RequestAccess() {
     sessionStorage.setItem("ownerEmail",docOwnerEmail);
     }
     (async () => {
-      await fetch(`http://localhost:5002/mail`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/mail`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

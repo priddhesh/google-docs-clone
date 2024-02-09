@@ -53,7 +53,7 @@ const Editor = () => {
   };
 
   const ownerID = async () => {
-    let data = await fetch(`http://localhost:5001/docOwnerID`, {
+    let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/docOwnerID`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,7 +67,7 @@ const Editor = () => {
   };
 
   const checkAuthorized = async () => {
-    let data = await fetch(`http://localhost:5001/api/authorize`, {
+    let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/authorize`, {
       credentials: "include",
     });
     return data;
@@ -88,14 +88,14 @@ const Editor = () => {
     const fetchData = async () => {
       let status = await isLoggedIn();
       if (status === true) {
-        let data = await fetch(`http://localhost:5001/email`, {
+        let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/email`, {
           credentials: "include",
         });
         data = await data.json();
         let email = data.email;
         setEmail(email);
         const isAllowed = async (id, email) => {
-          let res = await fetch(`http://localhost:5001/checkAuthorized`, {
+          let res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/checkAuthorized`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -108,7 +108,7 @@ const Editor = () => {
           if (res.success == true) {
             setRole(res.role);
             sessionStorage.setItem("role", res.role);
-            await fetch(`http://localhost:5001/updateRecentDocs`, {
+            await fetch(`${process.env.REACT_APP_BACKEND_URL}/updateRecentDocs`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -134,7 +134,7 @@ const Editor = () => {
     fetchData();
   }, [docContext.version]);
   useEffect(() => {
-    const socketServer = io("http://localhost:5000");
+    const socketServer = io(`${process.env.REACT_APP_BACKEND_URL}`);
     setSocket(socketServer);
 
     return () => {
@@ -195,7 +195,7 @@ const Editor = () => {
           window.location.reload();
          }, 1000);
         }
-        let data = await fetch(`http://localhost:5001/role`, {
+        let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/role`, {
           credentials: "include",
         });
 
@@ -221,7 +221,7 @@ const Editor = () => {
       ownerID();
     }
     (async (triggerSocket) => {
-      let data = await fetch(`http://localhost:5001/email`, {
+      let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/email`, {
         credentials: "include",
       });
       data = await data.json();

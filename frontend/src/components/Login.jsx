@@ -6,7 +6,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const signin = async () => {
-    let res = await fetch(`http://localhost:5001/api/signin`, {
+    let res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/signin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -26,7 +26,7 @@ function Login() {
   };
 
   const logout = async () => {
-    await fetch(`http://localhost:5001/test`, {
+    await fetch(`${process.env.REACT_APP_BACKEND_URL}/test`, {
       credentials: "include",
     });
   };
@@ -81,7 +81,7 @@ function Login() {
       >
         <div className="col mb-3">
           <a
-            href={`http://localhost:5001/auth/google`}
+            href={`${process.env.REACT_APP_BACKEND_URL}/auth/google`}
             className="btn btn-icon btn-danger btn-google btn-lg w-100 text-light"
           >
             <i className="bx bxl-google fs-xl me-2"></i>

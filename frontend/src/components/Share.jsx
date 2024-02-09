@@ -28,7 +28,7 @@ function Share() {
 
   const updateAccess = async () => {
     //setLoading(true);
-    let data = await fetch(`http://localhost:5001/updateAccess`, {
+    let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/updateAccess`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -52,7 +52,7 @@ function Share() {
     const getUsersWithAccess = async () => {
       try {
       //  setLoading(true);
-        let users = await fetch(`http://localhost:5001/getUsersWithAccess`, {
+        let users = await fetch(`${process.env.REACT_APP_BACKEND_URL}/getUsersWithAccess`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -73,7 +73,7 @@ function Share() {
 
   useEffect(() => {
     (async()=>{
-       let data = await fetch(`http://localhost:5001/doc`, {
+       let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/doc`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +93,7 @@ function Share() {
   
    
   const changeDocTitle = async(title)=>{
-    let res = fetch(`http://localhost:5001/changeDocTitle`,{
+    let res = fetch(`${process.env.REACT_APP_BACKEND_URL}/changeDocTitle`,{
       method: 'POST',
       headers: {
         "Content-Type": "application/json",

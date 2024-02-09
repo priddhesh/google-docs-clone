@@ -18,7 +18,7 @@ function Home() {
   const docContext = useContext(DocContext);
 
   const checkAuthorized = async () => {
-    let data = await fetch(`http://localhost:5001/api/authorize`, {
+    let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/authorize`, {
       credentials: "include",
     });
     return data;
@@ -39,14 +39,14 @@ function Home() {
       let status = await isLoggedIn();
       if (status === true) {
         (async () => {
-          let data = await fetch(`http://localhost:5001/email`, {
+          let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/email`, {
             credentials: "include",
           });
 
           data = await data.json();
           let userId = data.userID;
           setUserID(userId);
-          let recentDocsData = await fetch(`http://localhost:5001/recentDocs`, {
+          let recentDocsData = await fetch(`${process.env.REACT_APP_BACKEND_URL}/recentDocs`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -61,7 +61,7 @@ function Home() {
           setDocID(recentDocsData.id);
           setTime(recentDocsData.time);
 
-          let templates = await fetch(`http://localhost:5001/templates`,{
+          let templates = await fetch(`${process.env.REACT_APP_BACKEND_URL}/templates`,{
             credentials: "include",
           });
 
@@ -87,7 +87,7 @@ function Home() {
         return;
       }
       setSearchState(false);
-      let data = await fetch(`http://localhost:5001/searchDocs`,{
+      let data = await fetch(`${process.env.REACT_APP_BACKEND_URL}/searchDocs`,{
         method:"POST",
         headers: {
           "Content-Type": "application/json",
