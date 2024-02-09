@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-
+const {encrypt,decrypt}  = require("./Utilities/Crypto");
 const app = express();
 const corsOptions = {
   origin: "http://localhost:3000",
@@ -14,11 +14,11 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-
 passport.use(
   new GoogleStrategy(
     {
-      clientID: "643066909657-3d9qhdkckl1iqh0ok3vr47b58llrv31o.apps.googleusercontent.com",
+      clientID:
+        "643066909657-3d9qhdkckl1iqh0ok3vr47b58llrv31o.apps.googleusercontent.com",
       clientSecret: "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",
       callbackURL: `http://localhost:5001/auth/google/redirect`,
     },
@@ -52,7 +52,6 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.session());
-
 
 app.get(
   "/auth/google",
@@ -103,18 +102,8 @@ const {
   getDocument,
   updateDocument,
   addNewID,
-  updateAccess,
-  checkAuhtorized,
-  checkValidUser,
-  updateJWT,
-  checkDuplicateUserId,
-  register,
-  getJWT,
   updateDocTitle,
   getDocInfo,
-  getUserID,
-  getOwnerID,
-  getOwnerEmail,
   updateRecentDoc,
   getRecentDocs,
   searchDoc,
@@ -122,7 +111,25 @@ const {
   getTemplateData,
   updateVersion,
   getVersions,
-} = require("./database/db");
+} = require("./Models/DocModel");
+
+const {
+  updateAccess,
+  updateJWT,
+  checkDuplicateUserId,
+  register,
+  getJWT,
+  getUserID,
+  getOwnerID,
+  getOwnerEmail,
+  checkAuhtorized,
+} = require("./Models/UserModel");
+
+const { checkValidUser } = require("./database/db");
+
+const DocRouter = require("./Routes/DocRoutes");
+app.use("/", DocRouter);
+
 const io = new Server(5000, {
   cors: {
     origin: "http://localhost:3000",
@@ -156,33 +163,38 @@ async function generateRandomDigitNumber() {
 }
 
 io.on("connection", (socket) => {
-  socket.on("get-document", async (documentId, email,templateID,templateTitle) => {
-    let userID = await getUserID(email);
-    userID = userID[0][0].user_id;
-    let templateData = "";
-    if(templateID!="" && templateID!=undefined && templateID!=null){
-      templateData = await getTemplateData(templateID);
-      templateData = templateData[0][0].data;
-    }else{
-      templateTitle = "";
-    }
-    await addNewID(documentId, userID, email,templateData,templateTitle);
-    const document = await getDocument(documentId);
-    if (document[0][0].data.length != 0) {
-      let info = JSON.parse(document[0][0].data);
-      socket.join(documentId);
-      socket.emit("load-document", info);
-    }
+  socket.on(
+    "get-document",
+    async (documentId, email, templateID, templateTitle) => {
+      let userID = await getUserID(email);
+      userID = userID[0][0].user_id;
+      let templateData = "";
+      if (templateID != "" && templateID != undefined && templateID != null) {
+        templateData = await getTemplateData(templateID);
+        templateData = templateData[0][0].data;
+      } else {
+        templateTitle = "";
+      }
+      //let encryptedData = encrypt(templateData);
+      await addNewID(documentId, userID, email, templateData, templateTitle);
+      const document = await getDocument(documentId);
+      if (document[0][0].data.length != 0) {
+        let info = JSON.parse(document[0][0].data);
+        //let decryptedData = decrypt(info);
+        socket.join(documentId);
+        socket.emit("load-document", info);
+      }
 
-    socket.on("send-changes", (delta) => {
-      socket.broadcast.to(documentId).emit("receive-changes", delta);
-    });
+      socket.on("send-changes", (delta) => {
+        socket.broadcast.to(documentId).emit("receive-changes", delta);
+      });
 
-    socket.on("save-document", async (data) => {
-      await updateDocument(documentId, JSON.stringify(data.ops));
-      await updateVersion(documentId,JSON.stringify(data.ops));
-    });
-  });
+      socket.on("save-document", async (data) => {
+        await updateDocument(documentId, JSON.stringify(data.ops));
+        await updateVersion(documentId, JSON.stringify(data.ops));
+      });
+    }
+  );
 });
 
 app.post("/updateAccess", async (req, res) => {
@@ -291,33 +303,6 @@ app.get("/api/authorize", verifyToken, (req, res) => {
   });
 });
 
-app.post("/changeDocTitle", async (req, res) => {
-  try {
-    let { docTitle, docID } = req.body;
-    let data = await updateDocTitle(docID, docTitle);
-
-    res.send({ success: true });
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-});
-
-app.post("/doc", async (req, res) => {
-  try {
-    let { docID } = req.body;
-    let docInfo = await getDocInfo(docID);
-    if (docInfo[0][0] != undefined) {
-      docInfo = docInfo[0][0];
-      res.send(docInfo);
-    } else {
-      res.send({ title: "" });
-    }
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-});
 app.get("/test", async (req, res) => {
   try {
     res.clearCookie("email");
@@ -333,63 +318,6 @@ app.get("/email", async (req, res) => {
     let userID = await getUserID(req.cookies.email);
     userID = userID[0][0].user_id;
     res.send({ email: req.cookies.email, userID: userID });
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-});
-
-app.post("/updateRecentDocs", async (req, res) => {
-  try {
-    const { doc_id, email } = req.body;
-    const currentTime = new Date().toLocaleTimeString();
-    const currentDate = new Date().toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    let data = await updateRecentDoc(doc_id, email, currentTime, currentDate);
-    res.send({ success: true });
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-});
-
-app.post("/recentDocs", async (req, res) => {
-  try {
-    let { user_id } = req.body;
-    let docID = [];
-    let docDate = [];
-    let docTime = [];
-    let docTitle = [];
-    let data = await getRecentDocs(user_id);
-    if (data[0][0].recently_accessed!=null) {
-      data = data[0][0].recently_accessed;
-      data = JSON.parse(data);
-      async function processData(data) {
-        await Promise.all(
-          data.map(async (item) => {
-            let doc_id = item.split(" ")[0];
-            let docInfo = await getDocInfo(doc_id);
-            let date = `${item.split(" ")[1]} ${item.split(" ")[2]} ${
-              item.split(" ")[3]
-            }`;
-            let time = `${item.split(" ")[4]} ${item.split(" ")[5]}`;
-            docID.push(doc_id);
-            docDate.push(date);
-            docTime.push(time);
-            if (docInfo[0][0] != undefined) {
-              docTitle.push(docInfo[0][0].title);
-            } else {
-              docTitle.push("");
-            }
-          })
-        );
-      }
-      await processData(data);
-    }
-    res.send({ id: docID, date: docDate, time: docTime, title: docTitle });
   } catch (error) {
     console.log(error);
     return error;
@@ -431,60 +359,19 @@ app.post("/docOwnerID", async (req, res) => {
   }
 });
 
-app.post("/docOwnerEmail", async (req, res) => {
+app.get("/role", async (req, res) => {
   try {
-    const { ownerID } = req.body;
-    let ownerEmail = await getOwnerEmail(ownerID);
-    ownerEmail = ownerEmail[0][0];
-    res.send(ownerEmail);
+    let role = req.cookies.role;
+    res.send({ role: role });
   } catch (error) {
     console.log(error);
     return error;
   }
 });
 
-app.post("/searchDocs", async (req, res) => {
+app.post("/versions", async (req, res) => {
   try {
-    let searchedDocs = [];
-    const { user_id, search } = req.body;
-    const data = await searchDoc(user_id, search);
-    for (let i = 0; i < data.length; i++) {
-      let doc_id = data[i][1];
-      let docInfo = await getDocInfo(doc_id);
-      docInfo = docInfo[0][0];
-      searchedDocs.push(docInfo);
-    }
-    res.send(searchedDocs);
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-});
-
-app.get("/templates", async (req, res) => {
-  try {
-    let data = await getTemplates();
-    data = data[0];
-    res.send(data);
-  } catch (error) {
-    console.log(error);
-    return error;
-  }
-});
-
-app.get("/role",async(req,res)=>{
-   try {
-     let role = req.cookies.role;
-     res.send({role: role});
-   } catch (error) {
-    console.log(error);
-    return error;
-   }
-});
-
-app.post("/versions",async (req,res)=>{
-  try {
-    const {doc_id} = req.body;
+    const { doc_id } = req.body;
     let data = await getVersions(doc_id);
     data = data[0][0].version;
     data = Buffer.from(data, "hex");
